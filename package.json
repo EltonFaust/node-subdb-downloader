@@ -1,0 +1,23 @@
+{
+  "name": "subtitles-downloader",
+  "version": "1.0.0",
+  "description": "Subtitles downloader",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EltonFaust/node-subtitles-downloader.git"
+  },
+  "author": "elton.h.faust@gmail.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EltonFaust/node-subtitles-downloader/issues"
+  },
+  "homepage": "https://github.com/EltonFaust/node-subtitles-downloader#readme",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "md5": "^2.2.1"
+  }
+}
