@@ -6,8 +6,8 @@ const md5            = require('md5');
 const axios          = require('axios');
 const yargs          = require('yargs')
 const find           = require('find');
+const chokidar       = require('chokidar');
 const detectEncoding = require('detect-character-encoding');
-// const axios = require('md5');
 
 const hashList = {};
 
@@ -19,20 +19,24 @@ const fileHash = (fileName) => {
         return hashList[resolvedFileName];
     }
 
-    const fd = fs.openSync(resolvedFileName, 'r');
+    try {
+        const fd = fs.openSync(resolvedFileName, 'r');
 
-    const readsize = 64 * 1024;
-    const stats = fs.statSync(resolvedFileName);
+        const readsize = 64 * 1024;
+        const stats = fs.statSync(resolvedFileName);
 
-    const buffer = Buffer.alloc(readsize);
-    const buffer2 = Buffer.alloc(readsize);
+        const buffer = Buffer.alloc(readsize);
+        const buffer2 = Buffer.alloc(readsize);
 
-    fs.readSync(fd, buffer, 0, readsize, 0);
-    fs.readSync(fd, buffer2, 0, readsize, stats.size - readsize);
+        fs.readSync(fd, buffer, 0, readsize, 0);
+        fs.readSync(fd, buffer2, 0, readsize, stats.size - readsize);
 
-    hashList[resolvedFileName] = md5(Buffer.concat([buffer, buffer2], readsize * 2));
+        hashList[resolvedFileName] = md5(Buffer.concat([buffer, buffer2], readsize * 2));
 
-    fs.closeSync(fd);
+        fs.closeSync(fd);
+    } catch(e) {
+        hashList[resolvedFileName] = false;
+    }
 
     return hashList[resolvedFileName];
 };
@@ -73,6 +77,32 @@ const parseToTime = (value, hasOp) => {
     return time;
 };
 
+const downloadSubtitle = (fileName, language) => {
+    return new Promise((resolve, reject) => {
+        const file = path.resolve(fileName);
+        const hash = fileHash(file);
+
+        if (hash === false) {
+            reject(new Error('Invalid hash'));
+            return;
+        }
+
+        instance.get(
+            '',
+            {
+                params: { action: 'download', hash, language },
+                responseType: 'arraybuffer',
+                responseEncoding: 'binary',
+            }
+        ).then(({ data, headers }) => {
+            fs.writeFileSync(file.replace(/\.[a-z0-9]+$/, '.srt'), data.toString('binary'));
+            resolve({ hash, file, fileBasename: path.basename(file) });
+        }).catch(() => {
+            reject(new Error(`Subtitle not found for ${hash}`));
+        });
+    });
+};
+
 // console.log(fileHash('./dexter.mp4'))
 // ffd8d4aa68033dc03d1c8ef373b9028c
 // process.exit(0);
@@ -103,7 +133,6 @@ yargs
     () => {},
     (argv) => {
         console.log(fileHash(argv.file));
-        // console.log(fileHash2(argv.file));
     }
 )
 .command(
@@ -133,6 +162,18 @@ yargs
     }
 )
 .command(
+    'download for <file> <lang>',
+    'Download the subtitle for a specific file',
+    () => {},
+    (argv) => {
+        downloadSubtitle(argv.file, argv.lang).then(({ hash }) => {
+            console.log(`Downloaded - ${hash}`);
+        }).catch((e) => {
+            console.error(e.message);
+        });
+    }
+)
+.command(
     'download all <dir> <lang>',
     'Download all missing subtitles',
     () => {},
@@ -156,16 +197,11 @@ yargs
                 return;
             }
 
-            const hash = fileHash(file);
-
-            console.log(`${hash} - ${path.basename(file)}`)
-
-            instance.get('', { params: { action: 'download', hash, language: argv.lang } }).then(({ data }) => {
-                fs.writeFileSync(file.replace(/\.[a-z0-9]+$/, '.srt'), data);
-                console.log(' - Found');
+            downloadSubtitle(file, argv.lang).then(({ hash, fileBasename }) => {
+                console.log(`Downloaded - ${hash} (${fileBasename})`);
                 processItem();
-            }).catch(() => {
-                console.log(' - Not found');
+            }).catch((e) => {
+                console.error(e.message);
                 processItem();
             });
         };
@@ -173,14 +209,57 @@ yargs
         processItem();
     }
 )
-// .command(
-//     'download <dir>',
-//     'the serve command',
-//     () => {},
-//     (argv) => {
-//         console.log('this command will be run by default')
-//     }
-// )
+.command(
+    'watch dir <dir> <lang>',
+    'Watch directory for video changes subtitles',
+    () => {},
+    (argv) => {
+        const fileTimer = {};
+        const torrentFiles = [];
+        const dir = path.resolve(argv.dir);
+
+        console.log(`Watching directory "${dir}"`);
+
+        const processFile = (event, filename) => {
+            if (!/\.(mp4|avi|mkv|mpeg)$/i.test(filename)) {
+                if (/\.(mp4|avi|mkv|mpeg)\.part$/i.test(filename)) {
+                    // torrent file being downloaded
+                    torrentFiles.push(filename.replace(/\.[a-z0-9]+$/i, ''));
+                }
+
+                return;
+            }
+
+            if (event == 'add' && torrentFiles.indexOf(filename) === -1 && fs.existsSync(filename.replace(/\.[a-z0-9]+$/i, '.srt'))) {
+                // event "add" is called on initialized, ignore if already have a subtitle file
+                return;
+            }
+
+            console.log(`File changed "${filename}"`);
+
+            if (typeof fileTimer[filename] !== 'undefined') {
+                clearTimeout(fileTimer[filename]);
+            }
+
+            fileTimer[filename] = setTimeout(
+                () => {
+                    delete fileTimer[filename];
+
+                    downloadSubtitle(filename, argv.lang).then(({ hash, fileBasename }) => {
+                        console.log(`Downloaded - ${hash} (${fileBasename})`);
+                    }).catch((e) => {
+                        console.error(e.message);
+                    });
+                },
+                2000
+            );
+        };
+
+        chokidar.watch(dir, { ignored: /(^|[\/\\])\..|\.srt/, persistent: true })
+            .on('add', (filename) => processFile('add', filename))
+            .on('change', (filename) => processFile('add', filename));
+    }
+)
 .command(
     'ajust files <dir> <value>',
     'Increment time on all srt files (+00:00:00,000)',
@@ -224,18 +303,3 @@ yargs
 .demandCommand()
 .help()
 .argv;
-
-
-// fileHash('./dexter.mp4').then((hash) => {
-//     console.log(hash);
-// });
-
-// fileHash('./justified.mp4').then((hash) => {
-//     console.log(hash);
-// });
-
-
-
-// instance.get('', { params: { action: 'download', hash: md5(bf1) } }).then(({ data }) => {
-//     console.log(data);
-// });

@@ -18,6 +18,7 @@
   "homepage": "https://github.com/EltonFaust/node-subtitles-downloader#readme",
   "dependencies": {
     "axios": "^0.18.0",
+    "chokidar": "^2.1.5",
     "detect-character-encoding": "^0.7.0",
     "find": "^0.3.0",
     "md5": "^2.2.1",
