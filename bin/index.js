@@ -89,7 +89,21 @@ yargs
     'Watch directory for video changes subtitles',
     () => {},
     (argv) => {
-        watchDir(argv.dir, argv.lang);
+        console.log('Watching directory');
+
+        watchDir(argv.dir, argv.lang).subscribe(({ type, fileBaseName, ...extra }) => {
+            switch(type) {
+                case 'changed':
+                    console.log(`File changed or with no subtitle "${fileBaseName}"`);
+                    break;
+                case 'downloaded':
+                    console.log(`Downloaded - ${extra.hash} (${fileBaseName})`);
+                    break;
+                case 'error':
+                    console.error(extra.message);
+                    break;
+            }
+        });
     }
 )
 .command(
