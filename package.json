@@ -2,6 +2,10 @@
     "name": "subdb-downloader",
     "version": "1.0.1",
     "description": "Subtitles downloader from SubDB",
+    "keywords": [
+        "subtitle",
+        "SubDB"
+    ],
     "main": "lib/index.js",
     "bin": {
         "nsdbd": "bin/index.js"
