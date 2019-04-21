@@ -1,27 +1,31 @@
 {
-  "name": "subtitles-downloader",
-  "version": "1.0.0",
-  "description": "Subtitles downloader",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/EltonFaust/node-subtitles-downloader.git"
-  },
-  "author": "elton.h.faust@gmail.com",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/EltonFaust/node-subtitles-downloader/issues"
-  },
-  "homepage": "https://github.com/EltonFaust/node-subtitles-downloader#readme",
-  "dependencies": {
-    "axios": "^0.18.0",
-    "chokidar": "^2.1.5",
-    "detect-character-encoding": "^0.7.0",
-    "find": "^0.3.0",
-    "md5": "^2.2.1",
-    "yargs": "^13.2.2"
-  }
+    "name": "subdb-downloader",
+    "version": "1.0.0",
+    "description": "Subtitles downloader from SubDB",
+    "main": "lib/index.js",
+    "bin": {
+        "nsdbd": "bin/index.js"
+    },
+    "preferGlobal": "true",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/EltonFaust/node-subdb-downloader.git"
+    },
+    "author": "Elton H. Faust <elton.h.faust@gmail.com>",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/EltonFaust/node-subdb-downloader/issues"
+    },
+    "homepage": "https://github.com/EltonFaust/node-subdb-downloader#readme",
+    "dependencies": {
+        "axios": "^0.18.0",
+        "chokidar": "^2.1.5",
+        "detect-character-encoding": "^0.7.0",
+        "find": "^0.3.0",
+        "md5": "^2.2.1",
+        "yargs": "^13.2.2"
+    }
 }
